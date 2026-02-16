@@ -1,754 +1,357 @@
 <!DOCTYPE html>
-<html lang="ko" class="dark">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>나에게 맞는 AI 도구 찾기</title>
-    <!-- Tailwind CSS CDN -->
+    <title>AI 추천 마법사</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            font-family: 'Pretendard Variable', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-            background-color: #111827; /* Dark background */
-            color: #E0E7FF; /* Light text */
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            overflow: hidden; /* Prevent scroll during transition */
-        }
-
-        .card-container {
-            background-color: #0F172A; /* Darker card background */
-            border-radius: 1rem;
-            padding: 2rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            width: 100%;
-            max-width: 42rem; /* max-w-2xl */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            transition: opacity 0.3s ease-out, transform 0.3s ease-out; /* For step transition */
-        }
-
-        /* Focus ring for accessibility */
-        *:focus-visible {
-            outline: 2px solid #6366F1; /* Indigo-500 */
-            outline-offset: 2px;
-            border-radius: 0.5rem;
-        }
-
-        .btn-option {
-            background-color: #1F2937; /* Gray-800 */
-            border: 2px solid #374151; /* Gray-700 */
-            color: #F9FAFB; /* White */
-            transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
-        }
-
-        .btn-option:hover {
-            background-color: #374151; /* Gray-700 */
-            border-color: #6366F1; /* Indigo-500 */
-        }
-
-        .btn-option:active {
-            transform: scale(0.98);
-        }
-
-        .btn-option.selected {
-            background-color: #4338CA; /* Indigo-700 */
-            border-color: #6366F1; /* Indigo-500 */
-            color: #E0E7FF; /* Light text */
-        }
-
-        .btn-cta {
-            background-color: #6366F1; /* Indigo-500 */
+            background-color: #111827;
             color: white;
-            transition: background-color 0.2s ease, transform 0.1s ease;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
-
-        .btn-cta:hover {
-            background-color: #4F46E5; /* Indigo-600 */
+        .question-container {
+            animation: fadeIn 0.7s ease-in-out;
         }
-
-        .btn-cta:active {
-            transform: scale(0.98);
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-
-        .progress-bar {
-            height: 0.5rem;
-            background-color: #4F46E5; /* Indigo-600 */
-            transition: width 0.3s ease-in-out;
-            border-radius: 9999px; /* Full rounded */
+        .option-button {
+            transition: all 0.2s ease-in-out;
         }
-
-        .spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid #6366F1;
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
-            animation: spin 1s linear infinite;
+        .option-button:active {
+            transform: scale(0.97);
         }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .progress-bar-inner {
+            transition: width 0.5s ease-in-out;
         }
-
-        /* Reduced motion support */
-        @media (prefers-reduced-motion: reduce) {
-            .card-container {
-                transition: none !important;
-            }
-            .progress-bar {
-                transition: none !important;
-            }
-            .spinner {
-                animation: none !important;
-            }
+        .card {
+            background-color: #1f2937;
+            border: 1px solid #374151;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .tag {
+            background-color: #374151;
         }
     </style>
 </head>
-<body>
-    <!-- Accessibility: Aria live region for screen readers -->
-    <div aria-live="polite" class="sr-only" id="aria-announcer"></div>
+<body class="h-screen w-screen flex flex-col items-center justify-center p-4">
 
-    <!-- Progress Bar -->
-    <div class="fixed top-0 left-0 w-full bg-gray-800 z-10">
-        <div id="progress-bar" class="progress-bar" style="width: 0%;"></div>
+    <div id="progress-bar" class="w-full max-w-2xl fixed top-0 left-1/2 -translate-x-1/2 p-4 hidden">
+        <div class="w-full bg-gray-700 rounded-full h-2">
+            <div id="progress-bar-inner" class="bg-blue-500 h-2 rounded-full progress-bar-inner" style="width: 0%;"></div>
+        </div>
     </div>
 
-    <!-- Main Quiz Container -->
-    <div id="quiz-container" class="card-container">
-        <!-- Content will be rendered here by JavaScript -->
-    </div>
-
-    <!-- Navigation/CTA Buttons Container -->
-    <div id="nav-buttons-container" class="mt-8 flex gap-4">
-        <!-- Buttons will be rendered here by JavaScript -->
-    </div>
+    <main id="app" class="w-full max-w-2xl text-center">
+        <!-- 마법사 내용이 여기에 렌더링됩니다 -->
+    </main>
 
     <script>
-        // SECTION: Data Definitions
-        // ---------------------------------------------------------------------
-        const toolCatalog = {
-            wrtn: {
-                name: "Wrtn (뤼튼)",
-                emoji: "✍️",
-                desc: "한국어에 특화된 AI 글쓰기 도구입니다. 블로그, 카피라이팅 등에 최적화되어 있습니다.",
-                tags: ["글쓰기", "한국어", "무료"],
-                url: "https://wrtn.ai/"
-            },
-            chatgpt_plus: {
-                name: "ChatGPT Plus",
-                emoji: "🤖",
-                desc: "오픈AI의 최신 모델을 사용하는 범용 고성능 AI 비서입니다. 다양한 작업에 활용 가능합니다.",
-                tags: ["범용", "챗봇", "생산성", "유료"],
-                url: "https://chat.openai.com/"
-            },
-            bing_image: {
-                name: "Bing Image Creator",
-                emoji: "🎨",
-                desc: "Microsoft Copilot에 내장된 무료 이미지 생성 도구입니다. 쉽게 이미지를 만들 수 있습니다.",
-                tags: ["이미지 생성", "무료", "쉬움"],
-                url: "https://www.bing.com/images/create"
-            },
-            midjourney: {
-                name: "Midjourney",
-                emoji: "🖼️",
-                desc: "예술적이고 고퀄리티의 이미지를 생성하는 데 강점이 있는 AI 도구입니다. 유료 구독 기반입니다.",
-                tags: ["이미지 생성", "예술", "고품질", "유료"],
-                url: "https://www.midjourney.com/"
-            },
-            cursor: {
-                name: "Cursor",
-                emoji: "👨‍💻",
-                desc: "개발자를 위한 AI 기반 코드 에디터입니다. 코드 작성, 디버깅, 문서화 등을 돕습니다.",
-                tags: ["코딩", "개발", "생산성", "에디터"],
-                url: "https://cursor.sh/"
-            },
-            claude: {
-                name: "Claude",
-                emoji: "📚",
-                desc: "Anthropic에서 개발한 AI 챗봇으로, 긴 문맥을 이해하고 요약하는 데 탁월합니다.",
-                tags: ["챗봇", "요약", "긴 글", "생산성"],
-                url: "https://claude.ai/"
-            },
-            gamma: {
-                name: "Gamma",
-                emoji: "📊",
-                desc: "텍스트 입력만으로 발표 자료, 문서, 웹페이지를 자동으로 생성해주는 도구입니다.",
-                tags: ["발표자료", "문서", "생산성", "디자인"],
-                url: "https://gamma.app/"
-            },
-            zapier: {
-                name: "Zapier",
-                emoji: "🔗",
-                desc: "다양한 웹 앱을 연결하여 작업을 자동화해주는 플랫폼입니다. 코딩 없이 워크플로우를 구축할 수 있습니다.",
-                tags: ["자동화", "연동", "생산성", "워크플로우"],
-                url: "https://zapier.com/"
-            },
-            make: {
-                name: "Make",
-                emoji: "⚙️",
-                desc: "Zapier와 유사하게 앱 간의 연결과 자동화를 제공합니다. 시각적인 워크플로우 빌더를 특징으로 합니다.",
-                tags: ["자동화", "연동", "생산성", "워크플로우"],
-                url: "https://www.make.com/"
-            }
-        };
+        const app = document.getElementById('app');
+        const progressBar = document.getElementById('progress-bar');
+        const progressBarInner = document.getElementById('progress-bar-inner');
 
         const recommendationLogic = {
-            "quick:text:free": { tools: ["wrtn"], reason: "한국어에 강한 무료급 글쓰기 도구입니다." },
-            "quick:text:paid": { tools: ["chatgpt_plus"], reason: "범용성 높은 고성능 AI 비서입니다." },
-            "quick:image:free": { tools: ["bing_image"], reason: "무료 이미지 생성 입문용으로 좋습니다." },
-            "quick:image:paid": { tools: ["midjourney"], reason: "예술적 퀄리티에 강점이 있습니다." },
-            "deep:writing:marketing_kr": { tools: ["wrtn"], reason: "블로그, 카피라이팅 등 마케팅 글쓰기에 최적화되어 있습니다." },
-            "deep:writing:coding": { tools: ["cursor"], reason: "개발자를 위한 강력한 AI 코딩 에디터입니다." },
-            "deep:writing:paper": { tools: ["claude"], reason: "긴 문맥의 요약 및 정리에 강점이 있습니다." },
-            "deep:image:ppt": { tools: ["gamma"], reason: "텍스트 기반으로 빠르게 발표자료를 생성할 수 있습니다." },
-            "deep:image:photo_art": { tools: ["midjourney"], reason: "실사 및 예술적인 고퀄리티 이미지를 생성합니다." },
-            "deep:image:logo": { tools: ["bing_image"], reason: "간단한 로고/아이콘 생성에 활용하기 좋습니다." }, // Added based on Deep Dive flow
-            "deep:productivity:automation": { tools: ["zapier", "make"], reason: "다양한 앱 연결과 워크플로우 자동화를 위한 도구입니다." },
-            "deep:productivity:docs": { tools: ["gamma"], reason: "문서 및 정리 작업의 효율성을 높여줍니다." }, // Added based on Deep Dive flow
-            "deep:productivity:meeting": { tools: ["claude"], reason: "회의록 요약 및 정보 정리에 유용합니다." }, // Added based on Deep Dive flow
-            // Fallback (if no specific match)
-            "fallback": { tools: ["chatgpt_plus"], reason: "범용성이 높은 추천입니다.", highlightTags: ["범용", "다목적"] }
-        };
-
-        // SECTION: State Management
-        // ---------------------------------------------------------------------
-        const defaultState = {
-            mode: null,                 // "quick" | "deep"
-            stepIndex: 0,               // Current step index
-            answers: {},                // e.g., { domain:"text", price:"free", ... }
-            history: [],                // { stepIndex, answersSnapshot }
-        };
-
-        let state = JSON.parse(localStorage.getItem('wizardState')) || { ...defaultState };
-        // If state is loaded, but stepIndex is at result, reset for a fresh start or if mode is null.
-        if (state.stepIndex >= steps.length || state.mode === null) {
-            state = { ...defaultState };
-        }
-
-        const saveState = () => {
-            localStorage.setItem('wizardState', JSON.stringify(state));
-        };
-
-        // SECTION: Step Definitions
-        // ---------------------------------------------------------------------
-        const steps = [
-            // Step 0: Mode Selection
-            {
-                id: "mode_selection",
-                title: "나에게 맞는 AI 도구 찾기",
-                subtitle: "어떤 방식으로 추천을 받고 싶으신가요?",
-                mode: "common",
-                progressGroup: "mode",
-                getOptions: () => [
-                    { value: "quick", label: "⚡ 간단 모드" },
-                    { value: "deep", label: "🧐 심화 모드" }
-                ],
-                onSelect: (value) => {
-                    state.mode = value;
-                    state.answers = {}; // Reset answers on mode selection
-                },
-                next: () => {
-                    const nextStepId = state.mode === "quick" ? "quick_task_type" : "deep_field_of_work";
-                    return steps.findIndex(s => s.id === nextStepId);
-                }
+            // 간단 모드
+            'quick-text-free': {
+                name: "Wrtn (뤼튼)",
+                emoji: "✍️",
+                description: "한국어 생성 및 GPT-4 지원에 특화된 무료 AI입니다.",
+                tags: ["#무료GPT-4", "#한국어최적화", "#블로그"],
+                url: "https://wrtn.ai/"
             },
-            // Quick Mode Steps
-            {
-                id: "quick_task_type",
-                title: "어떤 작업을 하시나요?",
-                subtitle: "주로 어떤 종류의 AI 도구가 필요하신가요?",
-                mode: "quick",
-                progressGroup: "quick_q1",
-                getOptions: () => [
-                    { value: "text", label: "텍스트 (글쓰기, 요약, 번역 등)" },
-                    { value: "image", label: "이미지 (생성, 편집, 확대 등)" },
-                    { value: "video", label: "영상 (편집, 생성, 자막 등)" },
-                    { value: "other", label: "기타 (오디오, 데이터 분석 등)" }
-                ],
-                onSelect: (value) => { state.answers.domain = value; },
-                next: () => steps.findIndex(s => s.id === "quick_payment_pref")
+            'quick-text-paid': {
+                name: "ChatGPT Plus",
+                emoji: "🤖",
+                description: "가장 뛰어나고 범용적인 성능을 자랑하는 AI 비서입니다.",
+                tags: ["#GPT-4", "#만능", "#생산성"],
+                url: "https://chat.openai.com/"
             },
-            {
-                id: "quick_payment_pref",
-                title: "유료 결제도 괜찮나요?",
-                subtitle: "예산에 맞춰 AI 도구를 추천해 드릴게요.",
-                mode: "quick",
-                progressGroup: "quick_q2",
-                getOptions: () => [
-                    { value: "free", label: "무료만 필요해요" },
-                    { value: "paid", label: "유료도 괜찮아요" }
-                ],
-                onSelect: (value) => { state.answers.price = value; },
-                next: () => steps.findIndex(s => s.id === "result_quick")
+            'quick-image-free': {
+                name: "Bing Image Creator",
+                emoji: "🎨",
+                description: "Microsoft의 DALL-E 3 기반 무료 이미지 생성 AI입니다.",
+                tags: ["#무료", "#DALL-E 3", "#고품질"],
+                url: "https://www.bing.com/images/create"
             },
-            // Deep Dive Mode Steps
-            {
-                id: "deep_field_of_work",
-                title: "가장 필요한 작업 분야는?",
-                subtitle: "주로 어떤 분야에서 AI의 도움을 받고 싶으신가요?",
-                mode: "deep",
-                progressGroup: "deep_q1",
-                getOptions: () => [
-                    { value: "writing", label: "글쓰기 (작문, 번역, 요약)" },
-                    { value: "image", label: "이미지 (생성, 편집, 분석)" },
-                    { value: "productivity", label: "업무 효율 (자동화, 문서화, 회의)" }
-                ],
-                onSelect: (value) => { state.answers.domain = value; },
-                next: () => {
-                    switch (state.answers.domain) {
-                        case "writing": return steps.findIndex(s => s.id === "deep_writing_sub_type");
-                        case "image": return steps.findIndex(s => s.id === "deep_image_style");
-                        case "productivity": return steps.findIndex(s => s.id === "deep_productivity_need");
-                        default: return -1; // Should not happen
-                    }
-                }
+            'quick-image-paid': {
+                name: "Midjourney",
+                emoji: "🖼️",
+                description: "현존 최고의 예술적, 실사적 퀄리티를 보여주는 이미지 생성 AI입니다.",
+                tags: ["#고퀄리티", "#예술적", "#실사"],
+                url: "https://www.midjourney.com/"
             },
-            {
-                id: "deep_writing_sub_type",
-                title: "구체적으로 무엇을 쓰시나요?",
-                subtitle: "어떤 종류의 글쓰기 작업에 AI가 필요하신가요?",
-                mode: "deep",
-                progressGroup: "deep_q2a",
-                getOptions: () => [
-                    { value: "marketing_kr", label: "마케팅/블로그 (한국어)" },
-                    { value: "coding", label: "코딩/개발" },
-                    { value: "paper", label: "논문/긴 글 요약" }
-                ],
-                onSelect: (value) => { state.answers.sub = value; },
-                next: () => steps.findIndex(s => s.id === "deep_usage_style")
+             'quick-video-any': {
+                name: "Sora / Pika / Gen-2",
+                emoji: "🎬",
+                description: "영상 생성 AI는 아직 발전 초기 단계입니다. Sora(출시 예정), Pika, Runway Gen-2 등을 주목해보세요.",
+                tags: ["#영상생성", "#미래기술", "#베타"],
+                url: "https://openai.com/sora"
             },
-            {
-                id: "deep_image_style",
-                title: "어떤 스타일을 원하세요?",
-                subtitle: "AI 이미지 생성 시 어떤 결과물을 선호하시나요?",
-                mode: "deep",
-                progressGroup: "deep_q2b",
-                getOptions: () => [
-                    { value: "photo_art", label: "실사/예술 (고퀄리티)" },
-                    { value: "ppt", label: "PPT/발표자료" },
-                    { value: "logo", label: "로고/아이콘" }
-                ],
-                onSelect: (value) => { state.answers.sub = value; },
-                next: () => steps.findIndex(s => s.id === "deep_usage_style")
+             'quick-etc-any': {
+                name: "다양한 특화 AI",
+                emoji: "🛠️",
+                description: "음악(Suno), PPT(Gamma), 코딩(Cursor) 등 특정 목적에 맞는 다양한 AI들이 있습니다. 심화 모드를 이용해 보세요.",
+                tags: ["#특화AI", "#자동화", "#업무효율"],
+                url: "https://www.google.com/search?q=specialized+ai+tools"
             },
-            {
-                id: "deep_productivity_need",
-                title: "어떤 도움이 가장 필요하신가요?",
-                subtitle: "AI를 통해 어떤 업무 효율을 높이고 싶으신가요?",
-                mode: "deep",
-                progressGroup: "deep_q2c",
-                getOptions: () => [
-                    { value: "automation", label: "자동화/연동" },
-                    { value: "docs", label: "문서/정리" },
-                    { value: "meeting", label: "회의/요약" }
-                ],
-                onSelect: (value) => { state.answers.sub = value; },
-                next: () => steps.findIndex(s => s.id === "deep_usage_style")
+            // 심화 모드
+            'deep-writing-marketing': {
+                name: "Wrtn (뤼튼)",
+                emoji: "✍️",
+                description: "다양한 템플릿을 통해 블로그 포스팅, 마케팅 카피라이팅에 최적화되어 있습니다.",
+                tags: ["#카피라이팅", "#한국어", "#마케팅"],
+                url: "https://wrtn.ai/"
             },
-            {
-                id: "deep_usage_style",
-                title: "선호하는 사용 방식은?",
-                subtitle: "AI 도구를 어떻게 활용하고 싶으신가요?",
-                mode: "deep",
-                progressGroup: "deep_q3",
-                getOptions: () => [
-                    { value: "simple", label: "간단/즉시 사용 (직관적인 UI)" },
-                    { value: "power", label: "기능/세팅 다양 (세밀한 제어)" }
-                ],
-                onSelect: (value) => { state.answers.style = value; },
-                next: () => steps.findIndex(s => s.id === "result_deep")
+            'deep-writing-coding': {
+                name: "Cursor",
+                emoji: "💻",
+                description: "VSCode 기반으로 만들어져 기존 개발 환경에 AI를 완벽하게 통합한 코드 에디터입니다.",
+                tags: ["#개발자", "#코드생성", "#디버깅"],
+                url: "https://cursor.sh/"
             },
-            // Result Steps
-            {
-                id: "result_quick",
-                title: "AI 도구 추천 결과",
-                subtitle: "당신에게 딱 맞는 AI 도구를 찾았습니다!",
-                mode: "quick",
-                progressGroup: "result",
-                isResult: true
+            'deep-writing-paper': {
+                name: "Claude 3",
+                emoji: "📚",
+                description: "긴 문맥(PDF, 논문 등)을 한 번에 이해하고 자연스럽게 요약, 분석하는 데 강점이 있습니다.",
+                tags: ["#논문요약", "#긴글분석", "#PDF"],
+                url: "https://claude.ai/"
             },
-            {
-                id: "result_deep",
-                title: "AI 도구 추천 결과",
-                subtitle: "당신에게 딱 맞는 AI 도구를 찾았습니다!",
-                mode: "deep",
-                progressGroup: "result",
-                isResult: true
+            'deep-image-realism': {
+                name: "Midjourney",
+                emoji: "🖼️",
+                description: "실사 사진과 예술적 표현에서 압도적인 퀄리티를 자랑하는 최고의 이미지 생성 AI입니다.",
+                tags: ["#고퀄리티", "#예술적", "#실사"],
+                url: "https://www.midjourney.com/"
+            },
+            'deep-image-ppt': {
+                name: "Gamma",
+                emoji: "📊",
+                description: "텍스트 입력만으로 디자인, 레이아웃까지 완성된 PPT, 웹페이지를 자동으로 만들어줍니다.",
+                tags: ["#PPT자동화", "#발표자료", "#디자인"],
+                url: "https://gamma.app/"
+            },
+            'deep-image-logo': {
+                name: "Microsoft Designer",
+                emoji: "✨",
+                description: "DALL-E 3 기반으로 로고, 아이콘, 소셜미디어 콘텐츠 등 디자인 작업에 특화되어 있습니다.",
+                tags: ["#로고", "#아이콘", "#디자인"],
+                url: "https://designer.microsoft.com/"
+            },
+            'deep-efficiency-automation': {
+                name: "Zapier / Make",
+                emoji: "🔗",
+                description: "코딩 없이 다양한 앱과 서비스(Gmail, Slack, Notion 등)를 연결하여 반복 업무를 자동화합니다.",
+                tags: ["#업무자동화", "#연동", "#노코딩"],
+                url: "https://zapier.com/"
             }
-        ];
-
-        // SECTION: Core Rendering & Logic
-        // ---------------------------------------------------------------------
-        const quizContainer = document.getElementById("quiz-container");
-        const navButtonsContainer = document.getElementById("nav-buttons-container");
-        const progressBar = document.getElementById("progress-bar");
-        const ariaAnnouncer = document.getElementById("aria-announcer");
-
-        // Helper to check if reduced motion is preferred
-        const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-        /**
-         * Calculates the progress percentage based on the current step.
-         * For Deep Dive, it considers the current branch's max steps.
-         */
-        const calculateProgress = () => {
-            const currentStep = steps[state.stepIndex];
-            if (!currentStep || currentStep.mode === "common") return 0; // No progress for mode selection
-
-            const relevantSteps = steps.filter(s => s.mode === state.mode && s.progressGroup !== "mode");
-            let totalProgressGroups = new Set();
-            let completedProgressGroups = new Set();
-
-            for (let i = 0; i < relevantSteps.length; i++) {
-                const step = relevantSteps[i];
-                if (step.progressGroup) {
-                    totalProgressGroups.add(step.progressGroup);
-                }
-
-                if (i < state.stepIndex && step.mode === state.mode) {
-                    completedProgressGroups.add(step.progressGroup);
-                }
-            }
-
-            // For deep dive, we need to be more precise about the actual path
-            if (state.mode === "deep") {
-                const deepStepsOrder = [
-                    "deep_field_of_work",
-                    state.answers.domain === "writing" ? "deep_writing_sub_type" :
-                    state.answers.domain === "image" ? "deep_image_style" :
-                    state.answers.domain === "productivity" ? "deep_productivity_need" : null,
-                    "deep_usage_style",
-                    "result_deep"
-                ].filter(Boolean); // Filter out nulls
-
-                const currentStepId = steps[state.stepIndex].id;
-                const currentActualIndex = deepStepsOrder.indexOf(currentStepId);
-                if (currentActualIndex === -1) return 0; // Not a deep dive question or mode selection
-
-                const totalActualSteps = deepStepsOrder.length;
-                return Math.min(100, Math.round(((currentActualIndex + 1) / totalActualSteps) * 100));
-
-            } else if (state.mode === "quick") {
-                const quickStepsOrder = ["quick_task_type", "quick_payment_pref", "result_quick"];
-                const currentStepId = steps[state.stepIndex].id;
-                const currentActualIndex = quickStepsOrder.indexOf(currentStepId);
-                if (currentActualIndex === -1) return 0;
-
-                const totalActualSteps = quickStepsOrder.length;
-                return Math.min(100, Math.round(((currentActualIndex + 1) / totalActualSteps) * 100));
-            }
-            return 0;
         };
 
+        let state = {
+            currentStep: 'start', // start, mode, question, result
+            mode: null, // quick, deep
+            answers: {},
+            totalSteps: 0,
+        };
 
-        /**
-         * Renders the current step's UI.
-         */
-        const renderStep = async () => {
-            console.log("Current state:", JSON.stringify(state));
-            const currentStep = steps[state.stepIndex];
-            if (!currentStep) {
-                console.error("Invalid step index:", state.stepIndex);
+        function updateProgressBar() {
+            if (state.totalSteps === 0) {
+                progressBar.classList.add('hidden');
                 return;
             }
-            console.log("Current step ID:", currentStep.id);
+            progressBar.classList.remove('hidden');
+            const currentQuestionIndex = Object.keys(state.answers).length;
+            const progress = (currentQuestionIndex / state.totalSteps) * 100;
+            progressBarInner.style.width = `${progress}%`;
+        }
 
-            // Announce new question for screen readers
-            ariaAnnouncer.textContent = `${currentStep.title}. ${currentStep.subtitle || ''}`;
-
-            // Update progress bar
-            progressBar.style.width = `${calculateProgress()}%`;
-
-            // Apply fade-out animation if not reduced motion
-            if (!prefersReducedMotion && quizContainer.innerHTML !== "") { // Don't animate on first load
-                quizContainer.style.opacity = "0";
-                quizContainer.style.transform = "translateY(20px)";
-                await new Promise(resolve => setTimeout(resolve, 300)); // Wait for fade out
+        function handleAnswer(key, value) {
+            state.answers[key] = value;
+            
+            if (state.mode === 'quick') {
+                if (Object.keys(state.answers).length === 2) {
+                    renderResult();
+                } else {
+                    renderQuestion();
+                }
+            } else { // deep
+                 if (Object.keys(state.answers).length === 2) {
+                    renderResult();
+                } else {
+                    renderQuestion();
+                }
             }
+        }
+        
+        function renderResult() {
+            updateProgressBar();
+            app.innerHTML = `<div class="question-container text-center">
+                <div class="text-2xl mb-4">🔍</div>
+                <h1 class="text-2xl font-bold">AI가 당신의 답변을 분석 중입니다...</h1>
+            </div>`;
 
-            quizContainer.innerHTML = ''; // Clear previous content
-            navButtonsContainer.innerHTML = ''; // Clear navigation buttons
-
-            let contentHTML = `
-                <h2 class="text-3xl font-extrabold mb-4 text-white">${currentStep.title}</h2>
-                ${currentStep.subtitle ? `<p class="text-gray-400 mb-8 text-lg">${currentStep.subtitle}</p>` : ''}
-            `;
-
-            if (currentStep.isResult) {
-                showLoadingScreen();
-                // Simulate loading delay
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                quizContainer.innerHTML = ''; // Clear loading screen
-                contentHTML += renderResultCards();
-            } else {
-                const options = currentStep.getOptions ? currentStep.getOptions(state) : [];
-                contentHTML += `
-                    <div class="grid gap-4 w-full ${options.length > 2 ? 'md:grid-cols-2' : ''}">
-                        ${options.map(option => `
-                            <button
-                                class="btn-option p-4 rounded-lg flex items-center justify-center text-lg font-semibold h-full
-                                    ${state.answers[currentStep.id.includes('quick_') ? 'domain' : (currentStep.id.includes('deep_field') ? 'domain' : (currentStep.id.includes('deep_') && currentStep.id.includes('style') ? 'style' : 'sub'))] === option.value ? 'selected' : ''}"
-                                data-action="select"
-                                data-value="${option.value}"
-                                data-step-index="${state.stepIndex}"
-                                aria-pressed="${state.answers[currentStep.id.includes('quick_') ? 'domain' : (currentStep.id.includes('deep_field') ? 'domain' : (currentStep.id.includes('deep_') && currentStep.id.includes('style') ? 'style' : 'sub'))] === option.value}"
-                            >
-                                ${option.emoji ? `<span class="mr-2">${option.emoji}</span>` : ''}
-                                <span>${option.label}</span>
-                            </button>
-                        `).join('')}
-                    </div>
-                `;
-            }
-
-            quizContainer.innerHTML = contentHTML;
-
-            // Apply fade-in animation
-            if (!prefersReducedMotion) {
-                quizContainer.style.opacity = "0"; // Ensure it's hidden before setting transform
-                quizContainer.style.transform = "translateY(-20px)";
-                // Force reflow
-                quizContainer.offsetHeight;
-                quizContainer.style.opacity = "1";
-                quizContainer.style.transform = "translateY(0)";
-            } else {
-                quizContainer.style.opacity = "1"; // Just show if no animation
-                quizContainer.style.transform = "translateY(0)";
-            }
-
-
-            // Render navigation or CTA buttons
-            renderNavButtons(currentStep);
-
-            // Set initial focus for accessibility
             setTimeout(() => {
-                const firstInteractiveElement = quizContainer.querySelector('button, a, input');
-                if (firstInteractiveElement) {
-                    firstInteractiveElement.focus();
+                let key;
+                if (state.mode === 'quick') {
+                    if (state.answers.task === 'video' || state.answers.task === 'etc') {
+                         key = `quick-${state.answers.task}-any`;
+                    } else {
+                        key = `quick-${state.answers.task}-${state.answers.cost}`;
+                    }
+                } else { // deep
+                    if(state.answers.field === 'efficiency') {
+                        key = 'deep-efficiency-automation';
+                    } else {
+                        key = `deep-${state.answers.field}-${state.answers.detail}`;
+                    }
                 }
-            }, prefersReducedMotion ? 0 : 300); // Wait for transition to end
-        };
 
-        const showLoadingScreen = () => {
-            quizContainer.innerHTML = `
-                <div class="flex flex-col items-center justify-center py-16">
-                    <div class="spinner mb-6"></div>
-                    <p class="text-xl text-gray-300">🔍 AI가 당신의 답변을 분석 중입니다...</p>
-                </div>
-            `;
-        };
+                const result = recommendationLogic[key];
 
-        const renderResultCards = () => {
-            const currentStep = steps[state.stepIndex];
-            const keyPrefix = state.mode;
-            const domain = state.answers.domain;
-            const sub = state.answers.sub;
-            const price = state.answers.price;
-            const style = state.answers.style; // for deep mode
-
-            let recommendationKey;
-            if (state.mode === "quick") {
-                recommendationKey = `${keyPrefix}:${domain}:${price}`;
-            } else { // deep mode
-                recommendationKey = `${keyPrefix}:${domain}:${sub}`;
-                // Future extension for 'style' if it changes the recommendation key directly
-                // if (style) { recommendationKey += `:${style}`; }
-            }
-
-            let recommendation = recommendationLogic[recommendationKey] || recommendationLogic["fallback"];
-            // If the deep mode answer for style exists, add its tags to the recommendation tags.
-            // This is for display purpose, not changing the recommendation itself as per instructions.
-            if (state.mode === "deep" && style) {
-                // For simplicity, we just add a "simple" or "power" tag
-                if (!recommendation.highlightTags) recommendation.highlightTags = [];
-                recommendation.highlightTags.push(style === "simple" ? "간편함" : "강력함");
-            }
-
-
-            const toolsToRecommend = recommendation.tools.slice(0, 2); // Max 2 cards
-            let resultHtml = `
-                <div class="w-full space-y-6">
-                    ${toolsToRecommend.map(toolKey => {
-                        const tool = toolCatalog[toolKey];
-                        if (!tool) return '';
-                        const allTags = new Set([...tool.tags, ...(recommendation.highlightTags || [])]);
-                        const tagsHtml = Array.from(allTags).slice(0, 4).map(tag => `
-                            <span class="bg-indigo-900/50 text-indigo-300 text-xs font-semibold px-2.5 py-0.5 rounded-full mr-2 mb-2">${tag}</span>
-                        `).join('');
-
-                        return `
-                            <div class="bg-gray-800 p-6 rounded-lg text-left">
-                                <div class="flex items-center mb-4">
-                                    <span class="text-4xl mr-4">${tool.emoji}</span>
-                                    <div>
-                                        <h3 class="text-2xl font-bold text-white">${tool.name}</h3>
-                                        <p class="text-gray-400 text-sm">${recommendation.reason}</p>
-                                    </div>
-                                </div>
-                                <p class="text-gray-300 mb-4">${tool.desc}</p>
-                                <div class="flex flex-wrap items-center">
-                                    ${tagsHtml}
-                                </div>
+                if (result) {
+                     app.innerHTML = `
+                        <div class="card rounded-xl p-8 w-full max-w-md mx-auto">
+                            <div class="text-6xl mb-4">${result.emoji}</div>
+                            <h2 class="text-3xl font-bold mb-2">${result.name}</h2>
+                            <p class="text-gray-300 mb-6">${result.description}</p>
+                            <div class="flex justify-center gap-2 mb-8">
+                                ${result.tags.map(tag => `<span class="tag text-sm font-medium px-3 py-1 rounded-full">${tag}</span>`).join('')}
                             </div>
-                        `;
-                    }).join('')}
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <a href="${result.url}" target="_blank" class="option-button w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg">🌐 사이트 바로가기</a>
+                                <button onclick="restartWizard()" class="option-button w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg">🔄 처음부터 다시하기</button>
+                                <a href="index.html" class="option-button w-full bg-gray-800 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg">🏠 홈으로 돌아가기</a>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                     app.innerHTML = `
+                        <div class="card rounded-xl p-8 w-full max-w-md mx-auto">
+                            <div class="text-6xl mb-4">🤷</div>
+                            <h2 class="text-3xl font-bold mb-2">추천 정보를 찾을 수 없어요</h2>
+                            <p class="text-gray-300 mb-6">선택하신 조합에 대한 추천 AI가 아직 준비되지 않았습니다. 다른 옵션을 선택해보세요.</p>
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <button onclick="restartWizard()" class="option-button w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg">🔄 처음부터 다시하기</button>
+                                <a href="index.html" class="option-button w-full bg-gray-800 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg">🏠 홈으로 돌아가기</a>
+                            </div>
+                        </div>
+                    `;
+                }
+            }, 1500);
+        }
+
+        function renderQuestion() {
+            updateProgressBar();
+            let questionHTML = '';
+            
+            const commonButtonClasses = "option-button w-full border border-gray-600 hover:bg-gray-700 rounded-lg p-6 text-xl transition-colors duration-200";
+
+            if (state.mode === 'quick') {
+                const questionNumber = Object.keys(state.answers).length + 1;
+                if (questionNumber === 1) {
+                    questionHTML = `
+                        <div class="question-container">
+                            <h1 class="text-3xl font-bold mb-8">어떤 작업을 하시나요?</h1>
+                            <div class="grid grid-cols-2 gap-4">
+                                <button onclick="handleAnswer('task', 'text')" class="${commonButtonClasses}">✍️ 텍스트</button>
+                                <button onclick="handleAnswer('task', 'image')" class="${commonButtonClasses}">🎨 이미지</button>
+                                <button onclick="handleAnswer('task', 'video')" class="${commonButtonClasses}">🎬 영상</button>
+                                <button onclick="handleAnswer('task', 'etc')" class="${commonButtonClasses}">🛠️ 기타</button>
+                            </div>
+                        </div>`;
+                } else if (questionNumber === 2) {
+                     if (state.answers.task === 'video' || state.answers.task === 'etc') {
+                        return renderResult(); // Skip cost question for video/etc
+                    }
+                    questionHTML = `
+                        <div class="question-container">
+                            <h1 class="text-3xl font-bold mb-8">유료 결제도 괜찮나요?</h1>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <button onclick="handleAnswer('cost', 'free')" class="${commonButtonClasses}">💰 무료만</button>
+                                <button onclick="handleAnswer('cost', 'paid')" class="${commonButtonClasses}">💎 유료도 가능</button>
+                            </div>
+                        </div>`;
+                }
+            } else { // deep
+                const questionNumber = Object.keys(state.answers).length + 1;
+                if (questionNumber === 1) {
+                    questionHTML = `
+                        <div class="question-container">
+                             <h1 class="text-3xl font-bold mb-8">가장 필요한 작업 분야는?</h1>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <button onclick="handleAnswer('field', 'writing')" class="${commonButtonClasses}">✍️ 글쓰기</button>
+                                <button onclick="handleAnswer('field', 'image')" class="${commonButtonClasses}">🎨 이미지</button>
+                                <button onclick="handleAnswer('field', 'efficiency')" class="${commonButtonClasses}">🚀 업무 효율</button>
+                            </div>
+                        </div>`;
+                } else if (questionNumber === 2) {
+                     if(state.answers.field === 'efficiency') {
+                        return renderResult();
+                    }
+                    if (state.answers.field === 'writing') {
+                        questionHTML = `
+                            <div class="question-container">
+                                <h1 class="text-3xl font-bold mb-8">구체적으로 무엇을 쓰시나요?</h1>
+                                <div class="grid grid-cols-1 gap-4">
+                                    <button onclick="handleAnswer('detail', 'marketing')" class="${commonButtonClasses}">마케팅/블로그 글 (한국어)</button>
+                                    <button onclick="handleAnswer('detail', 'coding')" class="${commonButtonClasses}">코딩/프로그래밍</button>
+                                    <button onclick="handleAnswer('detail', 'paper')" class="${commonButtonClasses}">논문/긴 글 요약 및 분석</button>
+                                </div>
+                            </div>`;
+                    } else if (state.answers.field === 'image') {
+                        questionHTML = `
+                            <div class="question-container">
+                                <h1 class="text-3xl font-bold mb-8">어떤 스타일을 원하세요?</h1>
+                                <div class="grid grid-cols-1 gap-4">
+                                    <button onclick="handleAnswer('detail', 'realism')" class="${commonButtonClasses}">실사/예술 (고퀄리티)</button>
+                                    <button onclick="handleAnswer('detail', 'ppt')" class="${commonButtonClasses}">PPT/발표자료</button>
+                                    <button onclick="handleAnswer('detail', 'logo')" class="${commonButtonClasses}">로고/아이콘/디자인</button>
+                                </div>
+                            </div>`;
+                    }
+                }
+            }
+            app.innerHTML = questionHTML;
+        }
+
+        function selectMode(mode) {
+            state.mode = mode;
+            state.totalSteps = (mode === 'quick' || (mode === 'deep' && state.answers.field === 'efficiency')) ? 2 : 2;
+            renderQuestion();
+        }
+
+        function renderStart() {
+            progressBar.classList.add('hidden');
+            app.innerHTML = `
+                <div class="question-container">
+                    <h1 class="text-4xl font-bold mb-4">AI 추천 마법사</h1>
+                    <p class="text-lg text-gray-400 mb-12">몇 가지 질문에 답하고, 당신에게 꼭 맞는 AI 도구를 찾아보세요.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <button onclick="selectMode('quick')" class="option-button text-left border border-gray-600 hover:bg-gray-800 rounded-lg p-8">
+                            <h2 class="text-2xl font-bold mb-2">⚡ 간단 모드</h2>
+                            <p class="text-gray-400">2가지 질문으로 빠르게 추천받기</p>
+                        </button>
+                        <button onclick="selectMode('deep')" class="option-button text-left border border-gray-600 hover:bg-gray-800 rounded-lg p-8">
+                            <h2 class="text-2xl font-bold mb-2">🧐 심화 모드</h2>
+                            <p class="text-gray-400">상세한 질문으로 정확하게 추천받기</p>
+                        </button>
+                    </div>
                 </div>
             `;
-            return resultHtml;
-        };
+        }
+        
+        function restartWizard() {
+            state.currentStep = 'start';
+            state.mode = null;
+            state.answers = {};
+            state.totalSteps = 0;
+            renderStart();
+        }
 
-        const renderNavButtons = (currentStep) => {
-            navButtonsContainer.innerHTML = '';
-            if (currentStep.isResult) {
-                const firstRecommendedTool = recommendationLogic[state.mode === "quick" ? `quick:${state.answers.domain}:${state.answers.price}` : `deep:${state.answers.domain}:${state.answers.sub}`]?.tools?.[0];
-                const toolUrl = firstRecommendedTool ? toolCatalog[firstRecommendedTool]?.url : null;
-
-                if (toolUrl) {
-                    navButtonsContainer.innerHTML += `
-                        <button class="btn-cta py-3 px-6 rounded-lg text-lg font-semibold" data-action="open_tool_link" data-url="${toolUrl}">
-                            🌐 사이트 바로가기
-                        </button>
-                    `;
-                }
-                navButtonsContainer.innerHTML += `
-                    <button class="btn-option py-3 px-6 rounded-lg text-lg font-semibold" data-action="reset_wizard">
-                        🔄 처음부터 다시 하기
-                    </button>
-                    <button class="btn-option py-3 px-6 rounded-lg text-lg font-semibold" data-action="go_to_home">
-                        🏠 홈으로 돌아가기
-                    </button>
-                `;
-            } else {
-                if (state.history.length > 0) {
-                    navButtonsContainer.innerHTML += `
-                        <button class="btn-option py-3 px-6 rounded-lg text-lg font-semibold" data-action="prev_step">
-                            ← 뒤로가기
-                        </button>
-                    `;
-                }
-                // No 'Next' button as per Typeform style (auto-advance)
-            }
-        };
-
-        const nextStep = () => {
-            const currentStep = steps[state.stepIndex];
-            if (currentStep.next) {
-                const nextIndex = currentStep.next(state);
-                if (nextIndex !== -1) {
-                    state.history.push({ stepIndex: state.stepIndex, answersSnapshot: { ...state.answers } }); // Save current state for back
-                    state.stepIndex = nextIndex;
-                    saveState();
-                    renderStep();
-                }
-            }
-        };
-
-        const prevStep = () => {
-            if (state.history.length > 0) {
-                const previousState = state.history.pop();
-                state.stepIndex = previousState.stepIndex;
-                state.answers = previousState.answersSnapshot;
-                saveState();
-                renderStep();
-            }
-        };
-
-        const selectAnswer = (value) => {
-            const currentStep = steps[state.stepIndex];
-            if (currentStep && currentStep.onSelect) {
-                // If a new answer is selected on the same step, ensure history is clean or updated
-                // for the current step before pushing a new history item.
-                if (state.history.length > 0 && state.history[state.history.length - 1].stepIndex === state.stepIndex) {
-                    state.history.pop(); // Remove history entry if re-selecting on same step
-                }
-                currentStep.onSelect(value, state);
-                saveState();
-                nextStep(); // Auto-advance
-            }
-        };
-
-        const resetWizard = () => {
-            state = { ...defaultState };
-            saveState();
-            renderStep();
-        };
-
-        const goToHome = () => {
-            // This is a placeholder as `index.html` is outside the wizard context.
-            // In a real scenario, this would navigate to the actual home page.
-            alert("홈으로 돌아갑니다. (현재는 index.html로 이동 대신 알림으로 대체)");
-            // window.location.href = 'index.html'; // Uncomment this in a full project
-        };
-
-        // SECTION: Event Listeners (Delegation)
-        // ---------------------------------------------------------------------
-        document.body.addEventListener("click", (event) => {
-            const target = event.target.closest("[data-action]");
-            if (!target) return;
-
-            const action = target.dataset.action;
-            switch (action) {
-                case "select":
-                    selectAnswer(target.dataset.value);
-                    break;
-                case "next_step": // Not used as we auto-advance
-                    nextStep();
-                    break;
-                case "prev_step":
-                    prevStep();
-                    break;
-                case "reset_wizard":
-                    resetWizard();
-                    break;
-                case "go_to_home":
-                    goToHome();
-                    break;
-                case "open_tool_link":
-                    window.open(target.dataset.url, '_blank', 'noopener,noreferrer');
-                    break;
-            }
-        });
-
-        // Keyboard navigation
-        document.body.addEventListener("keydown", (event) => {
-            const currentStep = steps[state.stepIndex];
-            if (currentStep.isResult) return;
-
-            // Handle Enter/Space for buttons
-            if (event.key === "Enter" || event.key === " ") {
-                const focusedElement = document.activeElement;
-                if (focusedElement && focusedElement.tagName === "BUTTON" && focusedElement.dataset.action === "select") {
-                    focusedElement.click();
-                    event.preventDefault(); // Prevent default scroll/space behavior
-                } else if (focusedElement && focusedElement.tagName === "BUTTON" && (focusedElement.dataset.action === "prev_step" || focusedElement.dataset.action === "reset_wizard" || focusedElement.dataset.action === "go_to_home" || focusedElement.dataset.action === "open_tool_link")) {
-                    focusedElement.click();
-                    event.preventDefault();
-                }
-            }
-
-            // Handle number keys 1-9 for selecting options
-            if (event.key >= "1" && event.key <= "9") {
-                const optionButtons = quizContainer.querySelectorAll(".btn-option[data-action='select']");
-                const index = parseInt(event.key) - 1;
-                if (index >= 0 && index < optionButtons.length) {
-                    optionButtons[index].click();
-                    event.preventDefault();
-                }
-            }
-        });
-
-
-        // SECTION: Initial Load
-        // ---------------------------------------------------------------------
-        document.addEventListener("DOMContentLoaded", renderStep);
+        document.addEventListener('DOMContentLoaded', renderStart);
     </script>
 </body>
 </html>
