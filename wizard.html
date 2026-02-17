@@ -3,344 +3,442 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 추천 마법사</title>
+    <title>AI 맞춤형 컨설팅 마법사</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
+        /* 커스텀 폰트 및 전체 스타일 */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
         body {
-            background-color: #111827;
-            color: white;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Noto Sans KR', sans-serif;
         }
+
+        /* 질문 컨테이너 애니메이션 */
         .question-container {
-            animation: fadeIn 0.7s ease-in-out;
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        .question-enter {
+            opacity: 0;
+            transform: translateY(20px);
         }
-        .option-button {
-            transition: all 0.2s ease-in-out;
+        .question-exit {
+            opacity: 0;
+            transform: translateY(-20px);
         }
-        .option-button:active {
-            transform: scale(0.97);
+        
+        /* 스피너 애니메이션 */
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #3b82f6; /* blue-500 */
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
         }
-        .progress-bar-inner {
-            transition: width 0.5s ease-in-out;
-        }
-        .card {
-            background-color: #1f2937;
-            border: 1px solid #374151;
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        .tag {
-            background-color: #374151;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
-<body class="h-screen w-screen flex flex-col items-center justify-center p-4">
+<body class="bg-slate-900 text-white flex items-center justify-center min-h-screen p-4">
 
-    <div id="progress-bar" class="w-full max-w-2xl fixed top-0 left-1/2 -translate-x-1/2 p-4 hidden">
-        <div class="w-full bg-gray-700 rounded-full h-2">
-            <div id="progress-bar-inner" class="bg-blue-500 h-2 rounded-full progress-bar-inner" style="width: 0%;"></div>
+    <div class="w-full max-w-3xl mx-auto">
+        <!-- 진행바 -->
+        <div id="progress-bar-container" class="w-full h-2 bg-gray-800 rounded-full mb-8 overflow-hidden invisible">
+            <div id="progress-bar" class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+        </div>
+
+        <!-- 메인 컨텐츠 영역 -->
+        <div id="wizard-content">
+            <!-- 동적 컨텐츠가 여기에 렌더링됩니다. -->
+        </div>
+
+        <!-- 뒤로가기 버튼 -->
+        <div id="back-button-container" class="mt-8 text-left opacity-0 transition-opacity duration-500">
+             <button id="back-button" class="text-slate-400 hover:text-white transition-colors"><i class="fas fa-arrow-left mr-2"></i>뒤로 가기</button>
         </div>
     </div>
 
-    <main id="app" class="w-full max-w-2xl text-center">
-        <!-- 마법사 내용이 여기에 렌더링됩니다 -->
-    </main>
-
     <script>
-        const app = document.getElementById('app');
-        const progressBar = document.getElementById('progress-bar');
-        const progressBarInner = document.getElementById('progress-bar-inner');
-
-        const recommendationLogic = {
-            // 간단 모드
-            'quick-text-free': {
-                name: "Wrtn (뤼튼)",
-                emoji: "✍️",
-                description: "한국어 생성 및 GPT-4 지원에 특화된 무료 AI입니다.",
-                tags: ["#무료GPT-4", "#한국어최적화", "#블로그"],
-                url: "https://wrtn.ai/"
-            },
-            'quick-text-paid': {
-                name: "ChatGPT Plus",
-                emoji: "🤖",
-                description: "가장 뛰어나고 범용적인 성능을 자랑하는 AI 비서입니다.",
-                tags: ["#GPT-4", "#만능", "#생산성"],
-                url: "https://chat.openai.com/"
-            },
-            'quick-image-free': {
-                name: "Bing Image Creator",
-                emoji: "🎨",
-                description: "Microsoft의 DALL-E 3 기반 무료 이미지 생성 AI입니다.",
-                tags: ["#무료", "#DALL-E 3", "#고품질"],
-                url: "https://www.bing.com/images/create"
-            },
-            'quick-image-paid': {
-                name: "Midjourney",
-                emoji: "🖼️",
-                description: "현존 최고의 예술적, 실사적 퀄리티를 보여주는 이미지 생성 AI입니다.",
-                tags: ["#고퀄리티", "#예술적", "#실사"],
-                url: "https://www.midjourney.com/"
-            },
-             'quick-video-any': {
-                name: "Sora / Pika / Gen-2",
-                emoji: "🎬",
-                description: "영상 생성 AI는 아직 발전 초기 단계입니다. Sora(출시 예정), Pika, Runway Gen-2 등을 주목해보세요.",
-                tags: ["#영상생성", "#미래기술", "#베타"],
-                url: "https://openai.com/sora"
-            },
-             'quick-etc-any': {
-                name: "다양한 특화 AI",
-                emoji: "🛠️",
-                description: "음악(Suno), PPT(Gamma), 코딩(Cursor) 등 특정 목적에 맞는 다양한 AI들이 있습니다. 심화 모드를 이용해 보세요.",
-                tags: ["#특화AI", "#자동화", "#업무효율"],
-                url: "https://www.google.com/search?q=specialized+ai+tools"
-            },
-            // 심화 모드
-            'deep-writing-marketing': {
-                name: "Wrtn (뤼튼)",
-                emoji: "✍️",
-                description: "다양한 템플릿을 통해 블로그 포스팅, 마케팅 카피라이팅에 최적화되어 있습니다.",
-                tags: ["#카피라이팅", "#한국어", "#마케팅"],
-                url: "https://wrtn.ai/"
-            },
-            'deep-writing-coding': {
-                name: "Cursor",
-                emoji: "💻",
-                description: "VSCode 기반으로 만들어져 기존 개발 환경에 AI를 완벽하게 통합한 코드 에디터입니다.",
-                tags: ["#개발자", "#코드생성", "#디버깅"],
-                url: "https://cursor.sh/"
-            },
-            'deep-writing-paper': {
-                name: "Claude 3",
-                emoji: "📚",
-                description: "긴 문맥(PDF, 논문 등)을 한 번에 이해하고 자연스럽게 요약, 분석하는 데 강점이 있습니다.",
-                tags: ["#논문요약", "#긴글분석", "#PDF"],
-                url: "https://claude.ai/"
-            },
-            'deep-image-realism': {
-                name: "Midjourney",
-                emoji: "🖼️",
-                description: "실사 사진과 예술적 표현에서 압도적인 퀄리티를 자랑하는 최고의 이미지 생성 AI입니다.",
-                tags: ["#고퀄리티", "#예술적", "#실사"],
-                url: "https://www.midjourney.com/"
-            },
-            'deep-image-ppt': {
-                name: "Gamma",
-                emoji: "📊",
-                description: "텍스트 입력만으로 디자인, 레이아웃까지 완성된 PPT, 웹페이지를 자동으로 만들어줍니다.",
-                tags: ["#PPT자동화", "#발표자료", "#디자인"],
-                url: "https://gamma.app/"
-            },
-            'deep-image-logo': {
-                name: "Microsoft Designer",
-                emoji: "✨",
-                description: "DALL-E 3 기반으로 로고, 아이콘, 소셜미디어 콘텐츠 등 디자인 작업에 특화되어 있습니다.",
-                tags: ["#로고", "#아이콘", "#디자인"],
-                url: "https://designer.microsoft.com/"
-            },
-            'deep-efficiency-automation': {
-                name: "Zapier / Make",
-                emoji: "🔗",
-                description: "코딩 없이 다양한 앱과 서비스(Gmail, Slack, Notion 등)를 연결하여 반복 업무를 자동화합니다.",
-                tags: ["#업무자동화", "#연동", "#노코딩"],
-                url: "https://zapier.com/"
-            }
-        };
-
-        let state = {
-            currentStep: 'start', // start, mode, question, result
-            mode: null, // quick, deep
-            answers: {},
-            totalSteps: 0,
-        };
-
-        function updateProgressBar() {
-            if (state.totalSteps === 0) {
-                progressBar.classList.add('hidden');
-                return;
-            }
-            progressBar.classList.remove('hidden');
-            const currentQuestionIndex = Object.keys(state.answers).length;
-            const progress = (currentQuestionIndex / state.totalSteps) * 100;
-            progressBarInner.style.width = `${progress}%`;
+    // --- 1. CORE DATA: 의사결정 트리 ---
+    // 모든 질문, 답변, 결과 데이터를 이 객체에 정의합니다.
+    // - type: 'question' 또는 'result'
+    // - title: 질문 제목
+    // - answers: 선택 가능한 답변 배열 (next: 다음 단계의 key)
+    // - result data: 결과 화면에 표시될 정보 (이모지, 이름, 이유, 태그, 링크)
+    const flowLogic = {
+        'start': {
+            type: 'question',
+            title: '당신에게 딱 맞는 AI를 찾아드립니다.',
+            answers: [
+                { text: '⚡ 3초 컷 (간단 모드)', next: 'q1', icon: 'fa-bolt' },
+                { text: '🧐 정밀 진단 (심화 모드)', next: 'q1', icon: 'fa-search' },
+            ]
+        },
+        'q1': {
+            type: 'question',
+            title: '가장 관심 있는 분야는 무엇인가요?',
+            answers: [
+                { text: '✍️ 글쓰기/문서 작업', next: 'q2_text' },
+                { text: '🎨 이미지/디자인', next: 'q2_image' },
+                { text: '🎬 영상/오디오', next: 'q2_video' },
+                { text: '⚡ 업무 자동화', next: 'q2_work' },
+            ]
+        },
+        // --- 2-1. 글쓰기 분기 ---
+        'q2_text': {
+            type: 'question',
+            title: '글쓰기의 구체적인 목적은 무엇인가요?',
+            answers: [
+                { text: '블로그/마케팅 콘텐츠 (한국어)', next: 'result_wrtn' },
+                { text: '논문/긴 보고서 요약 및 분석', next: 'result_claude' },
+                { text: '코딩/개발 작업 보조', next: 'result_cursor' },
+                { text: '영어 이메일 작성 및 번역', next: 'result_deepl_chatgpt' },
+            ]
+        },
+        'result_wrtn': {
+            type: 'result',
+            emoji: '🇰🇷',
+            name: '뤼튼 (Wrtn)',
+            reason: '한국어 뉘앙스가 가장 자연스럽고, 글쓰기에 특화된 다양한 툴을 제공합니다. 특히 무료로 GPT-4 모델을 활용할 수 있다는 점이 큰 장점입니다.',
+            tags: ['#한국어 특화', '#무료 GPT-4', '#마케팅', '#블로그'],
+            link: 'https://wrtn.ai/'
+        },
+        'result_claude': {
+            type: 'result',
+            emoji: '📄',
+            name: 'Claude 3',
+            reason: '수백 페이지에 달하는 긴 문서를 한 번에 처리하고, 핵심 내용을 정확하게 요약 및 분석하는 능력이 현존 AI 중 가장 뛰어납니다.',
+            tags: ['#논문 분석', '#긴 글 요약', '#리서치', '#PDF'],
+            link: 'https://claude.ai/'
+        },
+        'result_cursor': {
+            type: 'result',
+            emoji: '💻',
+            name: 'Cursor',
+            reason: 'VS Code를 기반으로 만들어져 기존 개발 환경과 유사하며, 코드베이스 전체를 이해하고 질문에 답해주는 기능이 매우 강력합니다.',
+            tags: ['#코딩', '#개발', '#AI-IDE', '#코드분석'],
+            link: 'https://cursor.sh/'
+        },
+        'result_deepl_chatgpt': {
+            type: 'result',
+            emoji: '🧠',
+            name: 'DeepL + ChatGPT',
+            reason: 'DeepL로 1차 번역하여 정확도를 높이고, ChatGPT로 비즈니스 상황에 맞는 톤앤매너와 정중한 표현을 다듬는 조합을 추천합니다.',
+            tags: ['#영어 이메일', '#번역', '#비즈니스', '#작문'],
+            link: 'https://www.deepl.com/translator'
+        },
+        // --- 2-2. 이미지 분기 ---
+        'q2_image': {
+            type: 'question',
+            title: '어떤 스타일의 이미지를 원하시나요?',
+            answers: [
+                { text: '실사/예술적인 고퀄리티 이미지', next: 'result_midjourney' },
+                { text: '발표자료(PPT) 자동 생성', next: 'result_gamma' },
+                { text: '로고/아이콘 등 벡터 그래픽', next: 'result_recraft' },
+            ]
+        },
+        'result_midjourney': {
+            type: 'result',
+            emoji: '🎨',
+            name: 'Midjourney',
+            reason: '현존하는 이미지 생성 AI 중 가장 예술적이고 디테일한 표현력이 뛰어납니다. 특히 인물과 풍경 묘사에서 압도적인 퀄리티를 보여줍니다.',
+            tags: ['#고퀄리티', '#실사', '#예술', '#디스코드'],
+            link: 'https://www.midjourney.com/'
+        },
+        'result_gamma': {
+            type: 'result',
+            emoji: '📊',
+            name: 'Gamma',
+            reason: '단 몇 개의 키워드나 주제만 입력하면 AI가 전체 구조, 텍스트, 이미지까지 포함된 완성도 높은 프레젠테이션을 자동으로 디자인해줍니다.',
+            tags: ['#PPT', '#발표자료', '#자동생성', '#디자인'],
+            link: 'https://gamma.app/'
+        },
+        'result_recraft': {
+            type: 'result',
+            emoji: '✒️',
+            name: 'Recraft',
+            reason: '로고, 아이콘 등에서 가장 중요한 "벡터(SVG) 파일"로 결과물을 생성할 수 있습니다. AI로 만든 이미지를 깨짐 없이 편집하고 사용할 수 있습니다.',
+            tags: ['#로고', '#벡터', '#SVG', '#디자인 시스템'],
+            link: 'https://www.recraft.ai/'
+        },
+        // --- 2-3. 영상/오디오 분기 ---
+        'q2_video': {
+            type: 'question',
+            title: '어떤 영상/오디오 작업을 하시나요?',
+            answers: [
+                { text: '텍스트나 이미지로 영상 생성', next: 'result_runway' },
+                { text: '긴 영상에서 유튜브 쇼츠 자동 편집', next: 'result_opus' },
+            ]
+        },
+        'result_runway': {
+            type: 'result',
+            emoji: '🎥',
+            name: 'Runway Gen-2',
+            reason: '텍스트 프롬프트나 이미지를 기반으로 짧은 동영상을 생성하는 Text-to-Video 기술의 선두주자입니다. 실험적인 영상 제작에 적합합니다.',
+            tags: ['#Text-to-Video', '#영상생성', '#AI 영상'],
+            link: 'https://runwayml.com/'
+        },
+        'result_opus': {
+            type: 'result',
+            emoji: '✂️',
+            name: 'Opus Clip',
+            reason: '긴 강연이나 팟캐스트 영상 링크를 넣으면, AI가 자동으로 핵심 내용을 파악해 여러 개의 바이럴 쇼츠 클립을 자동 편집 및 생성해줍니다.',
+            tags: ['#유튜브 쇼츠', '#자동편집', '#영상편집', '#리폼'],
+            link: 'https://www.opus.pro/'
+        },
+        // --- 2-4. 업무 자동화 분기 ---
+        'q2_work': {
+            type: 'question',
+            title: '어떤 업무를 자동화하고 싶으신가요?',
+            answers: [
+                { text: '온/오프라인 회의 녹음 및 요약', next: 'result_daglo' },
+                { text: '반복적인 앱(App) 연동 작업', next: 'result_zapier' },
+            ]
+        },
+        'result_daglo': {
+            type: 'result',
+            emoji: '🎙️',
+            name: 'Daglo(다글로) or Clova Note',
+            reason: '국내 서비스로 한국어 음성 인식률이 매우 높고, 회의록에 필수적인 "화자 분리" 기능이 탁월하여 누가 어떤 말을 했는지 정리하기 편합니다.',
+            tags: ['#회의록', '#음성인식', '#STT', '#받아쓰기'],
+            link: 'https://daglo.ai/'
+        },
+        'result_zapier': {
+            type: 'result',
+            emoji: '🔗',
+            name: 'Zapier',
+            reason: '코딩 없이 "A앱에서 B 이벤트가 발생하면, C앱에서 D 작업을 실행해줘" 와 같은 자동화 워크플로우를 수천개의 앱과 연동하여 만들 수 있습니다.',
+            tags: ['#업무자동화', '#NoCode', '#API연동', '#생산성'],
+            link: 'https://zapier.com/'
         }
+    };
+    
+    // --- 2. STATE MANAGEMENT ---
+    // 앱의 현재 상태를 관리합니다.
+    let currentStepId = 'start'; // 현재 보여주는 질문/결과의 ID
+    let history = []; // 사용자가 거쳐온 경로를 저장 (뒤로가기 기능용)
+    const MAX_DEPTH = 3; // 가장 깊은 질문의 깊이 (시작:0, Q1:1, Q2:2, 결과:3)
 
-        function handleAnswer(key, value) {
-            state.answers[key] = value;
-            const answersCount = Object.keys(state.answers).length;
+    // --- 3. DOM ELEMENTS ---
+    // 자주 사용하는 HTML 요소를 변수에 할당합니다.
+    const wizardContent = document.getElementById('wizard-content');
+    const progressBar = document.getElementById('progress-bar');
+    const progressBarContainer = document.getElementById('progress-bar-container');
+    const backButton = document.getElementById('back-button');
+    const backButtonContainer = document.getElementById('back-button-container');
 
-            const isQuickModeTerminal = state.mode === 'quick' && (state.answers.task === 'video' || state.answers.task === 'etc');
-            const isDeepModeTerminal = state.mode === 'deep' && state.answers.field === 'efficiency';
+    // --- 4. RENDERING LOGIC ---
 
-            if (isQuickModeTerminal || isDeepModeTerminal || answersCount === state.totalSteps) {
-                renderResult();
-            } else {
-                renderQuestion();
+    /**
+     * 특정 단계(질문 또는 결과)를 화면에 렌더링하는 메인 함수
+     * @param {string} stepId - flowLogic 객체의 키
+     */
+    function renderStep(stepId) {
+        const stepData = flowLogic[stepId];
+        if (!stepData) return;
+
+        // 화면 전환 애니메이션 (Fade out)
+        wizardContent.classList.add('question-exit');
+
+        setTimeout(() => {
+            wizardContent.innerHTML = ''; // 이전 내용 지우기
+            wizardContent.classList.remove('question-exit');
+            wizardContent.classList.add('question-enter');
+
+            if (stepData.type === 'question') {
+                renderQuestion(stepId, stepData);
+            } else if (stepData.type === 'result') {
+                renderLoadingAndResult(stepData);
             }
-        }
-        
-        function renderResult() {
-            progressBarInner.style.width = '100%';
-            app.innerHTML = `<div class="question-container text-center">
-                <div class="text-2xl mb-4">🔍</div>
-                <h1 class="text-2xl font-bold">AI가 당신의 답변을 분석 중입니다...</h1>
-            </div>`;
-
-            setTimeout(() => {
-                let key;
-                if (state.mode === 'quick') {
-                    if (state.answers.task === 'video' || state.answers.task === 'etc') {
-                         key = `quick-${state.answers.task}-any`;
-                    } else {
-                        key = `quick-${state.answers.task}-${state.answers.cost}`;
-                    }
-                } else { // deep
-                    if(state.answers.field === 'efficiency') {
-                        key = 'deep-efficiency-automation';
-                    } else {
-                        key = `deep-${state.answers.field}-${state.answers.detail}`;
-                    }
-                }
-
-                const result = recommendationLogic[key];
-
-                if (result) {
-                     app.innerHTML = `
-                        <div class="card rounded-xl p-8 w-full max-w-md mx-auto">
-                            <div class="text-6xl mb-4">${result.emoji}</div>
-                            <h2 class="text-3xl font-bold mb-2">${result.name}</h2>
-                            <p class="text-gray-300 mb-6">${result.description}</p>
-                            <div class="flex flex-wrap justify-center gap-2 mb-8">
-                                ${result.tags.map(tag => `<span class="tag text-sm font-medium px-3 py-1 rounded-full">${tag}</span>`).join('')}
-                            </div>
-                            <div class="flex flex-col sm:flex-row gap-3">
-                                <a href="${result.url}" target="_blank" class="option-button w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg">🌐 사이트 바로가기</a>
-                                <button onclick="restartWizard()" class="option-button w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg">🔄 처음부터 다시하기</button>
-                                <a href="index.html" class="option-button w-full bg-gray-800 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg">🏠 홈으로 돌아가기</a>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                     app.innerHTML = `
-                        <div class="card rounded-xl p-8 w-full max-w-md mx-auto">
-                            <div class="text-6xl mb-4">🤷</div>
-                            <h2 class="text-3xl font-bold mb-2">추천 정보를 찾을 수 없어요</h2>
-                            <p class="text-gray-300 mb-6">선택하신 조합에 대한 추천 AI가 아직 준비되지 않았습니다. 다른 옵션을 선택해보세요.</p>
-                            <div class="flex flex-col sm:flex-row gap-3">
-                                <button onclick="restartWizard()" class="option-button w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg">🔄 처음부터 다시하기</button>
-                                <a href="index.html" class="option-button w-full bg-gray-800 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg">🏠 홈으로 돌아가기</a>
-                            </div>
-                        </div>
-                    `;
-                }
-            }, 1500);
-        }
-
-        function renderQuestion() {
-            updateProgressBar();
-            let questionHTML = '';
             
-            const commonButtonClasses = "option-button w-full border border-gray-600 hover:bg-gray-700 rounded-lg p-6 text-xl transition-colors duration-200";
-            const questionNumber = Object.keys(state.answers).length + 1;
+            // Fade in
+            setTimeout(() => wizardContent.classList.remove('question-enter'), 50);
 
-            if (state.mode === 'quick') {
-                if (questionNumber === 1) {
-                    questionHTML = `
-                        <div class="question-container">
-                            <h1 class="text-3xl font-bold mb-8">어떤 작업을 하시나요?</h1>
-                            <div class="grid grid-cols-2 gap-4">
-                                <button onclick="handleAnswer('task', 'text')" class="${commonButtonClasses}">✍️ 텍스트</button>
-                                <button onclick="handleAnswer('task', 'image')" class="${commonButtonClasses}">🎨 이미지</button>
-                                <button onclick="handleAnswer('task', 'video')" class="${commonButtonClasses}">🎬 영상</button>
-                                <button onclick="handleAnswer('task', 'etc')" class="${commonButtonClasses}">🛠️ 기타</button>
-                            </div>
-                        </div>`;
-                } else if (questionNumber === 2) {
-                    questionHTML = `
-                        <div class="question-container">
-                            <h1 class="text-3xl font-bold mb-8">유료 결제도 괜찮나요?</h1>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <button onclick="handleAnswer('cost', 'free')" class="${commonButtonClasses}">💰 무료만</button>
-                                <button onclick="handleAnswer('cost', 'paid')" class="${commonButtonClasses}">💎 유료도 가능</button>
-                            </div>
-                        </div>`;
-                }
-            } else { // deep
-                if (questionNumber === 1) {
-                    questionHTML = `
-                        <div class="question-container">
-                             <h1 class="text-3xl font-bold mb-8">가장 필요한 작업 분야는?</h1>
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <button onclick="handleAnswer('field', 'writing')" class="${commonButtonClasses}">✍️ 글쓰기</button>
-                                <button onclick="handleAnswer('field', 'image')" class="${commonButtonClasses}">🎨 이미지</button>
-                                <button onclick="handleAnswer('field', 'efficiency')" class="${commonButtonClasses}">🚀 업무 효율</button>
-                            </div>
-                        </div>`;
-                } else if (questionNumber === 2) {
-                    if (state.answers.field === 'writing') {
-                        questionHTML = `
-                            <div class="question-container">
-                                <h1 class="text-3xl font-bold mb-8">구체적으로 무엇을 쓰시나요?</h1>
-                                <div class="grid grid-cols-1 gap-4">
-                                    <button onclick="handleAnswer('detail', 'marketing')" class="${commonButtonClasses}">마케팅/블로그 글 (한국어)</button>
-                                    <button onclick="handleAnswer('detail', 'coding')" class="${commonButtonClasses}">코딩/프로그래밍</button>
-                                    <button onclick="handleAnswer('detail', 'paper')" class="${commonButtonClasses}">논문/긴 글 요약 및 분석</button>
-                                </div>
-                            </div>`;
-                    } else if (state.answers.field === 'image') {
-                        questionHTML = `
-                            <div class="question-container">
-                                <h1 class="text-3xl font-bold mb-8">어떤 스타일을 원하세요?</h1>
-                                <div class="grid grid-cols-1 gap-4">
-                                    <button onclick="handleAnswer('detail', 'realism')" class="${commonButtonClasses}">실사/예술 (고퀄리티)</button>
-                                    <button onclick="handleAnswer('detail', 'ppt')" class="${commonButtonClasses}">PPT/발표자료</button>
-                                    <button onclick="handleAnswer('detail', 'logo')" class="${commonButtonClasses}">로고/아이콘/디자인</button>
-                                </div>
-                            </div>`;
-                    }
-                }
-            }
-            app.innerHTML = questionHTML;
-        }
+            updateProgressBar();
+            updateBackButtonVisibility();
+        }, 500);
+    }
+    
+    /**
+     * 질문 UI를 생성하고 화면에 표시
+     * @param {string} stepId - 현재 질문 ID
+     * @param {object} data - 현재 질문 데이터
+     */
+    function renderQuestion(stepId, data) {
+        // 타이틀 생성
+        const title = document.createElement('h1');
+        title.className = 'text-3xl md:text-4xl font-bold text-center mb-12';
+        title.textContent = data.title;
+        wizardContent.appendChild(title);
 
-        function selectMode(mode) {
-            state.mode = mode;
-            state.totalSteps = 2; // All paths are 2 steps, with early exits handled in handleAnswer
-            renderQuestion();
-        }
-
-        function renderStart() {
-            progressBar.classList.add('hidden');
-            app.innerHTML = `
-                <div class="question-container">
-                    <h1 class="text-4xl font-bold mb-4">AI 추천 마법사</h1>
-                    <p class="text-lg text-gray-400 mb-12">몇 가지 질문에 답하고, 당신에게 꼭 맞는 AI 도구를 찾아보세요.</p>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <button onclick="selectMode('quick')" class="option-button text-left border border-gray-600 hover:bg-gray-800 rounded-lg p-8">
-                            <h2 class="text-2xl font-bold mb-2">⚡ 간단 모드</h2>
-                            <p class="text-gray-400">2가지 질문으로 빠르게 추천받기</p>
-                        </button>
-                        <button onclick="selectMode('deep')" class="option-button text-left border border-gray-600 hover:bg-gray-800 rounded-lg p-8">
-                            <h2 class="text-2xl font-bold mb-2">🧐 심화 모드</h2>
-                            <p class="text-gray-400">상세한 질문으로 정확하게 추천받기</p>
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
+        // 답변 버튼 목록 생성
+        const answersContainer = document.createElement('div');
+        answersContainer.className = 'grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl mx-auto';
         
-        function restartWizard() {
-            state.currentStep = 'start';
-            state.mode = null;
-            state.answers = {};
-            state.totalSteps = 0;
-            renderStart();
-        }
+        data.answers.forEach((answer, index) => {
+            const button = document.createElement('button');
+            button.className = 'p-4 border-2 border-slate-700 rounded-lg text-left hover:bg-slate-800 hover:border-blue-500 transition-all duration-200 text-lg flex items-center';
+            
+            let iconHtml = '';
+            if (answer.icon) {
+                iconHtml = `<i class="fas ${answer.icon} w-6 text-center mr-3 text-blue-400"></i>`;
+            }
 
-        document.addEventListener('DOMContentLoaded', renderStart);
+            button.innerHTML = `${iconHtml} <span class="flex-1">${answer.text}</span> <span class="text-slate-500 ml-2">[${index + 1}]</span>`;
+            
+            button.onclick = () => handleAnswer(stepId, answer.next);
+            answersContainer.appendChild(button);
+        });
+        wizardContent.appendChild(answersContainer);
+    }
+    
+    /**
+     * 로딩 화면을 잠시 보여준 후, 최종 결과 화면을 렌더링
+     * @param {object} data - 최종 결과 데이터
+     */
+    function renderLoadingAndResult(data) {
+        // 로딩 화면 UI
+        wizardContent.innerHTML = `
+            <div class="flex flex-col items-center justify-center text-center h-48">
+                <div class="spinner"></div>
+                <p class="mt-4 text-xl font-medium text-slate-300">🔍 AI가 답변을 분석 중입니다...</p>
+            </div>
+        `;
+
+        // 1.5초 후 결과 표시
+        setTimeout(() => {
+            renderResult(data);
+        }, 1500);
+    }
+
+    /**
+     * 최종 결과 UI를 생성하고 화면에 표시
+     * @param {object} data - 최종 결과 데이터
+     */
+    function renderResult(data) {
+        wizardContent.innerHTML = `
+            <div class="text-center question-container question-enter">
+                <p class="text-slate-400 mb-4">당신을 위한 최적의 AI는...</p>
+                <h1 class="text-5xl md:text-6xl font-bold mb-4">${data.emoji} ${data.name}</h1>
+                
+                <div class="my-8 bg-slate-800 p-6 rounded-lg text-left max-w-2xl mx-auto">
+                    <p class="text-lg text-slate-200">${data.reason}</p>
+                </div>
+
+                <div class="flex justify-center gap-2 mb-10">
+                    ${data.tags.map(tag => `<span class="bg-blue-900/50 text-blue-300 text-sm font-medium px-3 py-1 rounded-full">${tag}</span>`).join('')}
+                </div>
+
+                <div class="flex flex-col md:flex-row justify-center items-center gap-4">
+                    <a href="${data.link}" target="_blank" class="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-colors text-lg">
+                        🚀 바로 사용해보기
+                    </a>
+                    <button id="restart-button" class="w-full md:w-auto bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-8 rounded-lg transition-colors">
+                        🔄 처음부터 다시 하기
+                    </button>
+                    <a href="index.html" class="w-full md:w-auto text-slate-400 hover:text-white py-3 px-6 rounded-lg transition-colors">
+                        🏠 메인으로
+                    </a>
+                </div>
+            </div>
+        `;
+        // Fade-in 애니메이션
+        setTimeout(() => wizardContent.querySelector('.question-container').classList.remove('question-enter'), 50);
+        
+        // 새로 생긴 '다시하기' 버튼에 이벤트 리스너 추가
+        document.getElementById('restart-button').onclick = handleRestart;
+    }
+
+
+    // --- 5. UI UPDATE & EVENT HANDLERS ---
+    
+    /**
+     * 답변 버튼 클릭 시 호출되는 핸들러
+     * @param {string} fromStepId - 이전 단계 ID
+     * @param {string} toStepId - 다음 단계 ID
+     */
+    function handleAnswer(fromStepId, toStepId) {
+        history.push(fromStepId);
+        currentStepId = toStepId;
+        renderStep(currentStepId);
+    }
+
+    /**
+     * '뒤로 가기' 버튼 클릭 시 호출
+     */
+    function handleBack() {
+        if (history.length > 0) {
+            currentStepId = history.pop();
+            renderStep(currentStepId);
+        }
+    }
+    
+    /**
+     * '처음부터 다시 하기' 버튼 클릭 시 호출
+     */
+    function handleRestart() {
+        history = [];
+        currentStepId = 'start';
+        renderStep(currentStepId);
+    }
+    
+    /**
+     * 진행 상태에 따라 상단 진행바 너비 업데이트
+     */
+    function updateProgressBar() {
+        const stepData = flowLogic[currentStepId];
+        let progress = 0;
+        
+        if (history.length === 0 && currentStepId === 'start') {
+            progress = 0;
+            progressBarContainer.classList.add('invisible');
+        } else {
+            progressBarContainer.classList.remove('invisible');
+            if (stepData.type === 'result') {
+                progress = 100;
+            } else {
+                // 현재 depth / 최대 depth
+                progress = Math.max(0, (history.length / MAX_DEPTH) * 100);
+            }
+        }
+        progressBar.style.width = `${progress}%`;
+    }
+
+    /**
+     * 뒤로가기 버튼의 표시 여부 업데이트
+     */
+    function updateBackButtonVisibility() {
+        if (history.length > 0) {
+            backButtonContainer.classList.remove('opacity-0');
+        } else {
+            backButtonContainer.classList.add('opacity-0');
+        }
+    }
+    
+    /**
+     * 키보드 숫자 키 입력 처리
+     */
+    function handleKeyPress(e) {
+        const stepData = flowLogic[currentStepId];
+        if (stepData && stepData.type === 'question') {
+            const key = parseInt(e.key);
+            if (!isNaN(key) && key > 0 && key <= stepData.answers.length) {
+                const answer = stepData.answers[key - 1];
+                handleAnswer(currentStepId, answer.next);
+            }
+        }
+    }
+
+    // --- 6. INITIALIZATION ---
+    // 이벤트 리스너를 등록하고 앱을 시작합니다.
+    document.addEventListener('DOMContentLoaded', () => {
+        backButton.addEventListener('click', handleBack);
+        document.addEventListener('keydown', handleKeyPress);
+        renderStep(currentStepId); // 첫 화면 렌더링
+    });
+
     </script>
 </body>
 </html>
